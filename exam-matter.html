@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exam Matters — Admin Panel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0F1724; color: #E8F4FD; min-height: 100vh; }
+  header { background: #19253A; padding: 18px 32px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2D3F55; }
+  header h1 { font-size: 20px; font-weight: 700; }
+  main { max-width: 960px; margin: 32px auto; padding: 0 24px 60px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tab { padding: 10px 22px; border-radius: 10px; background: #19253A; border: 1px solid #2D3F55; cursor: pointer; font-size: 14px; font-weight: 600; color: #9BB5C8; transition: all 0.2s; }
+  .tab:hover { border-color: #4A9EDA; color: #4A9EDA; }
+  .tab.active { background: #4A9EDA; color: #0F1724; border-color: #4A9EDA; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: #19253A; border-radius: 16px; padding: 28px; margin-bottom: 20px; border: 1px solid #2D3F55; }
+  .card h2 { font-size: 12px; font-weight: 700; color: #9BB5C8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 20px; }
+  label { display: block; color: #9BB5C8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; margin-top: 16px; }
+  input, select, textarea { width: 100%; background: #0F1724; border: 1px solid #2D3F55; border-radius: 10px; padding: 12px 16px; color: #E8F4FD; font-size: 15px; outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: #4A9EDA; }
+  textarea { resize: vertical; min-height: 70px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #4A9EDA; color: #0F1724; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-full { width: 100%; margin-top: 20px; padding: 13px; font-size: 15px; }
+  .btn-orange { background: #F39C12; color: #0F1724; }
+  .btn-red { background: #E53954; color: #fff; }
+  .btn-green { background: #2ECC71; color: #0F1724; }
+  .file-drop { border: 2px dashed #2D3F55; border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+  .file-drop:hover, .file-drop.drag { border-color: #4A9EDA; background: rgba(74,158,218,0.05); }
+  #thumbInput, #pdfInput { display: none; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: #6B8BA4; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #2D3F55; }
+  td { padding: 12px 10px; border-bottom: 1px solid #1A2A3E; font-size: 14px; vertical-align: middle; color: #C5D8E8; }
+  tr:last-child td { border-bottom: none; }
+  .del-btn { background: none; border: 1px solid #e74c3c; color: #e74c3c; border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
+  .del-btn:hover { background: rgba(231,76,60,0.1); }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #19253A; border: 1px solid #2D3F55; padding: 14px 20px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 220px; }
+  #toast.show { opacity: 1; }
+  #toast.error { border-color: #e74c3c; }
+  #toast.success { border-color: #2ECC71; }
+  #loginSection { max-width: 380px; margin: 90px auto; }
+  #appSection { display: none; }
+  .note { font-size: 12px; color: #6B8BA4; margin-top: 6px; line-height: 1.6; }
+  .badge { display: inline-block; background: #1E3A5F; color: #4A9EDA; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .empty-state { text-align: center; padding: 40px; color: #4A6580; font-size: 14px; }
+  .progress-wrap { background: #0F1724; border-radius: 6px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4A9EDA; width: 0%; transition: width 0.3s; }
+  select option { background: #0F1724; }
+
+  /* ── 2FA ── */
+  .step-dots { display:flex; gap:4px; margin-bottom:20px; }
+  .step-dot { flex:1; height:4px; background:#2D3F55; border-radius:4px; transition:background .3s; }
+  .step-dot.done { background:#4A9EDA; }
+  .otp-row { display:flex; gap:8px; justify-content:center; margin:18px 0 8px; }
+  .otp-box { width:46px; height:54px; background:#0F1724; border:1px solid #2D3F55; border-radius:10px; color:#E8F4FD; font-size:24px; font-weight:700; text-align:center; outline:none; }
+  .otp-box:focus { border-color:#4A9EDA; }
+  .qr-wrap { background:#fff; border-radius:12px; padding:16px; display:inline-block; margin:12px 0; }
+  .secret-box { background:#0F1724; border:1px dashed #2D3F55; border-radius:8px; padding:10px 14px; font-family:monospace; font-size:14px; letter-spacing:2px; color:#4A9EDA; text-align:center; margin:8px 0 4px; word-break:break-all; }
+  .back-btn { background:none; border:none; color:#6B8BA4; font-size:13px; cursor:pointer; padding:0 0 14px; }
+  .back-btn:hover { color:#9BB5C8; }
+  #otpSection, #setupSection { display:none; max-width:380px; margin:90px auto; }
+
+  /* ── Users tab specific ── */
+  .search-row { display: flex; gap: 10px; margin-top: 8px; }
+  .search-row input { flex: 1; }
+  .search-row .btn { flex-shrink: 0; border-radius: 10px; }
+  .user-card { background: #162030; border: 1px solid #2D3F55; border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .user-card:hover { border-color: #3A5570; }
+  .user-info { flex: 1; }
+  .user-name { font-size: 17px; font-weight: 700; color: #E8F4FD; margin-bottom: 4px; }
+  .user-meta { font-size: 13px; color: #9BB5C8; line-height: 2; }
+  .user-meta span { display: block; }
+  .user-device { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; background: #0F1724; border: 1px solid #2D3F55; border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #9BB5C8; }
+  .user-device.locked { border-color: #E59A12; color: #E59A12; }
+  .user-device.free { border-color: #2ECC71; color: #2ECC71; }
+  .user-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .free-label { color: #2ECC71; font-size: 13px; font-weight: 700; }
+  .loading-spinner { text-align: center; padding: 32px; color: #6B8BA4; }
+</style>
+</head>
+<body>
+
+<!-- ══ STEP 1: Email + Password ══ -->
+<div id="loginSection">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:44px;margin-bottom:8px;">📚</div>
+    <h1 style="font-size:24px;font-weight:800;">Exam Matters Admin</h1>
+    <p style="color:#6B8BA4;font-size:14px;margin-top:6px;">Protected with 2-Factor Authentication</p>
+  </div>
+  <div class="card">
+    <div class="step-dots">
+      <div class="step-dot done"></div>
+      <div class="step-dot" id="dot2"></div>
+    </div>
+    <label>Admin Email</label>
+    <input type="email" id="loginEmail" placeholder="admin@example.com" />
+    <label>Password</label>
+    <input type="password" id="loginPassword" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="btn btn-full" onclick="doLogin()" id="btnLogin">Sign In →</button>
+    <p id="loginError" style="color:#e74c3c;font-size:13px;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+
+<!-- ══ STEP 2: TOTP Code ══ -->
+<div id="otpSection">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:44px;margin-bottom:8px;">🔐</div>
+    <h1 style="font-size:24px;font-weight:800;">2FA Verification</h1>
+    <p style="color:#6B8BA4;font-size:14px;margin-top:6px;">Enter the 6-digit code from your authenticator app</p>
+  </div>
+  <div class="card">
+    <div class="step-dots">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+    </div>
+    <button class="back-btn" onclick="goBackToLogin()">← Back to login</button>
+    <p style="font-size:13px;color:#9BB5C8;text-align:center;margin-bottom:4px;">
+      Open <strong>Google Authenticator</strong> or <strong>Authy</strong><br/>and enter the code for <strong>Exam Matters Admin</strong>
+    </p>
+    <div class="otp-row">
+      <input class="otp-box" id="otp0" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,0)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="otp1" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,1)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="otp2" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,2)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="otp3" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,3)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="otp4" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,4)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="otp5" maxlength="1" inputmode="numeric" onkeyup="otpNav(event,5)" oninput="cleanOtp(this)"/>
+    </div>
+    <p id="otpTimer" style="text-align:center;font-size:12px;color:#6B8BA4;margin-bottom:12px;"></p>
+    <button class="btn btn-full" onclick="verifyOtp()" id="btnVerify">Verify &amp; Enter Admin</button>
+    <p id="otpError" style="color:#e74c3c;font-size:13px;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+
+<!-- ══ STEP 3: First-time Setup ══ -->
+<div id="setupSection">
+  <div style="text-align:center;margin-bottom:20px;">
+    <div style="font-size:44px;margin-bottom:8px;">📱</div>
+    <h1 style="font-size:22px;font-weight:800;">Setup 2FA</h1>
+    <p style="color:#6B8BA4;font-size:14px;margin-top:6px;">One-time setup — takes 30 seconds</p>
+  </div>
+  <div class="card">
+    <p style="font-size:13px;color:#9BB5C8;line-height:1.8;margin-bottom:16px;">
+      <strong style="color:#E8F4FD;">Step 1 —</strong> Install an authenticator app on your phone:<br/>
+      <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" style="color:#4A9EDA;">Google Authenticator</a> &nbsp;or&nbsp;
+      <a href="https://play.google.com/store/apps/details?id=com.authy.authy" target="_blank" style="color:#4A9EDA;">Authy</a>
+    </p>
+    <p style="font-size:13px;color:#9BB5C8;margin-bottom:8px;"><strong style="color:#E8F4FD;">Step 2 —</strong> Scan this QR code:</p>
+    <div style="text-align:center;">
+      <div class="qr-wrap"><canvas id="qrCanvas"></canvas></div>
+    </div>
+    <p class="note" style="text-align:center;margin:4px 0 2px;">Or enter this key manually in your app:</p>
+    <div class="secret-box" id="secretDisplay"></div>
+    <p class="note" style="text-align:center;margin-bottom:16px;">Spaces don't matter when entering manually</p>
+    <hr style="border-color:#2D3F55;margin:16px 0;" />
+    <p style="font-size:13px;color:#9BB5C8;margin-bottom:4px;"><strong style="color:#E8F4FD;">Step 3 —</strong> Enter the 6-digit code shown in your app:</p>
+    <div class="otp-row">
+      <input class="otp-box" id="setup0" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,0)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="setup1" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,1)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="setup2" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,2)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="setup3" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,3)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="setup4" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,4)" oninput="cleanOtp(this)"/>
+      <input class="otp-box" id="setup5" maxlength="1" inputmode="numeric" onkeyup="setupNav(event,5)" oninput="cleanOtp(this)"/>
+    </div>
+    <button class="btn btn-full btn-green" onclick="confirmSetup()" id="btnSetup">Activate 2FA ✓</button>
+    <p id="setupError" style="color:#e74c3c;font-size:13px;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appSection">
+  <header>
+    <span style="font-size:24px;">📚</span>
+    <h1>Exam Matters Admin</h1>
+    <span class="badge" id="adminEmail"></span>
+    <button onclick="doLogout()" style="margin-left:auto;background:none;border:1px solid #2D3F55;color:#9BB5C8;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:13px;">Sign Out</button>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="batches" onclick="switchTab('batches')">📦 Batches</div>
+      <div class="tab" data-tab="folders" onclick="switchTab('folders')">📁 Folders</div>
+      <div class="tab" data-tab="content" onclick="switchTab('content')">📄 Content</div>
+      <div class="tab" data-tab="users" onclick="switchTab('users')">👥 Users</div>
+    </div>
+
+    <!-- ══════════ TAB: BATCHES ══════════ -->
+    <div class="panel active" id="panel-batches">
+      <div class="card">
+        <h2>Create New Batch</h2>
+        <div class="row">
+          <div>
+            <label>Title</label>
+            <input type="text" id="batchTitle" placeholder="e.g. Geography Class 1-2-3" />
+          </div>
+          <div>
+            <label>Type</label>
+            <select id="batchType">
+              <option value="recorded">Recorded</option>
+              <option value="live">Live</option>
+            </select>
+          </div>
+        </div>
+        <label>Subtitle</label>
+        <input type="text" id="batchSubtitle" placeholder="e.g. GPSC Class 1/2 & Super Class - 3" />
+        <label>Description</label>
+        <textarea id="batchDesc" placeholder="What's included in this batch..."></textarea>
+        <div class="row">
+          <div><label>Price (₹)</label><input type="number" id="batchPrice" placeholder="1699" /></div>
+          <div><label>MRP (₹)</label><input type="number" id="batchMrp" placeholder="2000" /></div>
+          <div><label>Discount %</label><input type="number" id="batchDiscount" placeholder="15" /></div>
+        </div>
+        <label>Play Console Product ID</label>
+        <input type="text" id="batchProductId" placeholder="e.g. batch_geography_123" />
+        <p class="note">⚠️ Must exactly match an in-app product in Google Play Console → Monetize → In-app products.</p>
+        <label>Thumbnail Image</label>
+        <div class="file-drop" id="thumbDrop"
+          onclick="document.getElementById('thumbInput').click()"
+          ondragover="handleDragOver(event,'thumbDrop')"
+          ondragleave="handleDragLeave('thumbDrop')"
+          ondrop="handleDrop(event,'thumb')">
+          <div id="thumbLabel">📷 Click or drag thumbnail image here</div>
+        </div>
+        <input type="file" id="thumbInput" accept="image/*" onchange="handleThumbSelect(event)" />
+        <div id="thumbProgress" style="display:none;margin-top:12px;">
+          <div class="progress-wrap"><div class="progress-fill" id="thumbProgressFill"></div></div>
+          <p class="note" id="thumbProgressText"></p>
+        </div>
+        <button class="btn btn-full" id="btnCreateBatch" onclick="createBatch()">+ Create Batch</button>
+      </div>
+      <div class="card">
+        <h2>All Batches</h2>
+        <div id="batchList"><div class="empty-state">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ TAB: FOLDERS ══════════ -->
+    <div class="panel" id="panel-folders">
+      <div class="card">
+        <h2>Create New Folder</h2>
+        <p class="note" style="margin-bottom:16px;">Folders organise content inside a batch. E.g. "Chapter 1", "Mock Tests", "Revision Notes". Create folders first, then add content from the Content tab.</p>
+        <label>Select Batch</label>
+        <select id="folderBatchSelect"></select>
+        <label>Folder Name</label>
+        <input type="text" id="folderName" placeholder="e.g. Chapter 1 - Physical Geography" />
+        <label>Order Index <span class="note" style="display:inline;">(lower = first)</span></label>
+        <input type="number" id="folderOrder" value="0" />
+        <button class="btn btn-full" id="btnCreateFolder" onclick="createFolder()">+ Create Folder</button>
+      </div>
+      <div class="card">
+        <h2>Folder List</h2>
+        <label>Select Batch</label>
+        <select id="folderListBatchSelect" onchange="loadFolderList()" style="margin-bottom:16px;"></select>
+        <div id="folderList"><div class="empty-state">Select a batch above.</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ TAB: CONTENT ══════════ -->
+    <div class="panel" id="panel-content">
+      <div class="card">
+        <h2>Add Content to a Folder</h2>
+        <p class="note" style="margin-bottom:16px;">Select batch → select folder → add PDF or video. Content always lives inside a folder.</p>
+        <label>1. Select Batch</label>
+        <select id="contentBatchSelect" onchange="loadFoldersForContentTab()"></select>
+        <label>2. Select Folder</label>
+        <select id="contentFolderSelect"><option>— select a batch first —</option></select>
+        <label>3. Content Title</label>
+        <input type="text" id="contentTitle" placeholder="e.g. Chapter 1 Notes" />
+        <label>4. Content Type</label>
+        <select id="contentType" onchange="toggleContentFields()">
+          <option value="pdf">📄 PDF Document</option>
+          <option value="video">▶️ Video Lecture</option>
+        </select>
+        <div id="pdfFieldGroup">
+          <label>PDF File</label>
+          <div class="file-drop" id="pdfDrop"
+            onclick="document.getElementById('pdfInput').click()"
+            ondragover="handleDragOver(event,'pdfDrop')"
+            ondragleave="handleDragLeave('pdfDrop')"
+            ondrop="handleDrop(event,'pdf')">
+            <div id="pdfLabel">📎 Click or drag PDF file here</div>
+          </div>
+          <input type="file" id="pdfInput" accept="application/pdf" onchange="handlePdfSelect(event)" />
+          <div id="pdfProgress" style="display:none;margin-top:12px;">
+            <div class="progress-wrap"><div class="progress-fill" id="pdfProgressFill"></div></div>
+            <p class="note" id="pdfProgressText"></p>
+          </div>
+        </div>
+        <div id="videoFieldGroup" style="display:none;">
+          <label>Video URL</label>
+          <input type="text" id="videoUrl" placeholder="https://youtube.com/watch?v=..." />
+        </div>
+        <label>Order Index</label>
+        <input type="number" id="contentOrder" value="0" />
+        <button class="btn btn-full" id="btnAddContent" onclick="addContent()">+ Add Content</button>
+      </div>
+      <div class="card">
+        <h2>Content List</h2>
+        <div class="row" style="margin-bottom:16px;">
+          <div>
+            <label>Batch</label>
+            <select id="contentListBatchSelect" onchange="loadFoldersForContentList()"></select>
+          </div>
+          <div>
+            <label>Folder</label>
+            <select id="contentListFolderSelect" onchange="loadContentList()"><option>— select batch —</option></select>
+          </div>
+        </div>
+        <div id="contentList"><div class="empty-state">Select a batch and folder above.</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ TAB: USERS ══════════ -->
+    <div class="panel" id="panel-users">
+
+      <!-- Search -->
+      <div class="card">
+        <h2>Search User</h2>
+        <p class="note" style="margin-bottom:12px;">Search by email or phone number to find a user and manage their registered device.</p>
+        <div class="search-row">
+          <input type="text" id="userSearchInput" placeholder="Email or phone number..."
+            onkeydown="if(event.key==='Enter') searchUser()" />
+          <button class="btn" onclick="searchUser()">Search</button>
+        </div>
+        <div id="searchResult" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- All users list -->
+      <div class="card">
+        <h2>All Users</h2>
+        <div id="userList"><div class="loading-spinner">Loading users...</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<!-- QR code library (MIT) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc,
+    doc, getDoc, setDoc, updateDoc, serverTimestamp, query,
+    orderBy, where, limit, deleteField
+  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getStorage, ref, uploadBytesResumable, getDownloadURL }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB4DoRnV8esYdWtO1T50n7DK5ApTc99uRA",
+    authDomain: "pdfreader-d6e6f.firebaseapp.com",
+    databaseURL: "https://pdfreader-d6e6f-default-rtdb.firebaseio.com",
+    projectId: "pdfreader-d6e6f",
+    storageBucket: "pdfreader-d6e6f.firebasestorage.app",
+    messagingSenderId: "227322746247",
+    appId: "1:227322746247:web:e00b5c9d3dff7969b7ef22",
+    measurementId: "G-M8ELV39X11"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  let selectedThumb = null;
+  let selectedPdf = null;
+
+  // ─── 2FA STATE ─────────────────────────────────────────────────────────────
+  let pendingUser  = null;   // Firebase user after step-1, before 2FA passed
+  let totpSecret   = null;   // Base32 secret used during first-time setup
+  let otpTimerInt  = null;
+
+  // ─── SECTION SWITCHER ───────────────────────────────────────────────────────
+  function showSection(id) {
+    ['loginSection','otpSection','setupSection','appSection']
+      .forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.style.display = (s === id) ? 'block' : 'none';
+      });
+    if (id !== 'otpSection' && otpTimerInt) { clearInterval(otpTimerInt); otpTimerInt = null; }
+    if (id === 'loginSection') sessionStorage.removeItem('2fa_ok');
+  }
+
+  function enterApp(user) {
+    showSection('appSection');
+    document.getElementById('adminEmail').textContent = user.email;
+    loadBatches();
+    loadAllBatchSelectors();
+  }
+
+  // ─── AUTH STATE ─────────────────────────────────────────────────────────────
+  onAuthStateChanged(auth, async user => {
+    if (!user) { showSection('loginSection'); return; }
+
+    // Already passed 2FA this browser session — go straight in
+    if (sessionStorage.getItem('2fa_ok') === user.uid) { enterApp(user); return; }
+
+    // Firebase signed in but 2FA not verified yet
+    pendingUser = user;
+    showSection('loginSection'); // hide everything while we check
+
+    try {
+      const snap = await getDoc(doc(db, 'admin_2fa', user.uid));
+      if (snap.exists()) {
+        showOtpStep();           // 2FA already set up → ask for code
+      } else {
+        await showSetupStep(user); // First time → show QR / secret
+      }
+    } catch(e) {
+      // Firestore unreachable — fail safe, sign out
+      console.error('2FA check failed', e);
+      await signOut(auth);
+      showSection('loginSection');
+    }
+  });
+
+  // ─── STEP 1: Email + Password ────────────────────────────────────────────
+  window.doLogin = async () => {
+    const email  = document.getElementById('loginEmail').value.trim();
+    const pass   = document.getElementById('loginPassword').value;
+    const errEl  = document.getElementById('loginError');
+    const btn    = document.getElementById('btnLogin');
+    errEl.style.display = 'none';
+    if (!email || !pass) {
+      errEl.textContent = 'Please enter email and password.';
+      errEl.style.display = 'block'; return;
+    }
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged handles next step
+    } catch(e) {
+      errEl.textContent = 'Incorrect email or password.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign In →';
+    }
+  };
+
+  // ─── STEP 2: TOTP Verification ───────────────────────────────────────────
+  function showOtpStep() {
+    showSection('otpSection');
+    document.getElementById('otp0').focus();
+    startOtpTimer();
+  }
+
+  function startOtpTimer() {
+    if (otpTimerInt) clearInterval(otpTimerInt);
+    const tick = () => {
+      const secs = 30 - (Math.floor(Date.now()/1000) % 30);
+      const el = document.getElementById('otpTimer');
+      if (el) el.textContent = `Code refreshes in ${secs}s`;
+    };
+    tick(); otpTimerInt = setInterval(tick, 1000);
+  }
+
+  window.otpNav = (e, i) => {
+    const v = document.getElementById('otp'+i).value;
+    if (v && i < 5) document.getElementById('otp'+(i+1)).focus();
+    if (e.key==='Backspace' && !v && i>0) document.getElementById('otp'+(i-1)).focus();
+    if (e.key==='Enter') verifyOtp();
+  };
+
+  window.verifyOtp = async () => {
+    const code = [0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');
+    const err  = document.getElementById('otpError');
+    const btn  = document.getElementById('btnVerify');
+    err.style.display = 'none';
+    if (code.length !== 6) { err.textContent='Enter all 6 digits.'; err.style.display='block'; return; }
+    btn.disabled=true; btn.textContent='Verifying…';
+    try {
+      const snap = await getDoc(doc(db,'admin_2fa', pendingUser.uid));
+      if (!snap.exists()) throw new Error('no 2fa doc');
+      const valid = await verifyTOTP(snap.data().secret, code);
+      if (!valid) {
+        err.textContent = 'Wrong code — codes change every 30 seconds, try again.';
+        err.style.display='block';
+        [0,1,2,3,4,5].forEach(i=>document.getElementById('otp'+i).value='');
+        document.getElementById('otp0').focus();
+        btn.disabled=false; btn.textContent='Verify & Enter Admin';
+        return;
+      }
+      if (otpTimerInt) clearInterval(otpTimerInt);
+      sessionStorage.setItem('2fa_ok', pendingUser.uid);
+      enterApp(pendingUser);
+    } catch(e) {
+      err.textContent='Verification error — please try again.';
+      err.style.display='block';
+      btn.disabled=false; btn.textContent='Verify & Enter Admin';
+    }
+  };
+
+  window.goBackToLogin = async () => {
+    if (otpTimerInt) clearInterval(otpTimerInt);
+    await signOut(auth);
+    pendingUser = null;
+    [0,1,2,3,4,5].forEach(i=>document.getElementById('otp'+i).value='');
+    showSection('loginSection');
+    const btn = document.getElementById('btnLogin');
+    btn.disabled=false; btn.textContent='Sign In →';
+  };
+
+  // ─── STEP 3: First-time 2FA Setup ───────────────────────────────────────
+  async function showSetupStep(user) {
+    totpSecret = generateBase32Secret(20);
+    document.getElementById('secretDisplay').textContent = formatSecret(totpSecret);
+
+    const issuer = 'DrashyamAdmin';
+    const otpUrl = `otpauth://totp/${issuer}:${encodeURIComponent(user.email)}?secret=${totpSecret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+
+    showSection('setupSection');
+
+    // Wait for QRCode lib (loaded via CDN above)
+    const tryQR = (attempts) => {
+      if (window.QRCode) {
+        const canvas = document.getElementById('qrCanvas');
+        window.QRCode.toCanvas(canvas, otpUrl, { width:200, margin:2 }, ()=>{});
+      } else if (attempts > 0) {
+        setTimeout(()=>tryQR(attempts-1), 300);
+      }
+    };
+    tryQR(10);
+    document.getElementById('setup0').focus();
+  }
+
+  window.setupNav = (e, i) => {
+    const v = document.getElementById('setup'+i).value;
+    if (v && i<5) document.getElementById('setup'+(i+1)).focus();
+    if (e.key==='Backspace' && !v && i>0) document.getElementById('setup'+(i-1)).focus();
+    if (e.key==='Enter') confirmSetup();
+  };
+
+  window.confirmSetup = async () => {
+    const code = [0,1,2,3,4,5].map(i=>document.getElementById('setup'+i).value).join('');
+    const err  = document.getElementById('setupError');
+    const btn  = document.getElementById('btnSetup');
+    err.style.display='none';
+    if (code.length !== 6) { err.textContent='Enter all 6 digits.'; err.style.display='block'; return; }
+    btn.disabled=true; btn.textContent='Verifying…';
+
+    const valid = await verifyTOTP(totpSecret, code);
+    if (!valid) {
+      err.textContent='Code incorrect — make sure you scanned the QR code, then try again.';
+      err.style.display='block';
+      [0,1,2,3,4,5].forEach(i=>document.getElementById('setup'+i).value='');
+      document.getElementById('setup0').focus();
+      btn.disabled=false; btn.textContent='Activate 2FA ✓';
+      return;
+    }
+    try {
+      await setDoc(doc(db,'admin_2fa', pendingUser.uid), {
+        secret: totpSecret,
+        email: pendingUser.email,
+        enabledAt: Date.now()
+      });
+      sessionStorage.setItem('2fa_ok', pendingUser.uid);
+      enterApp(pendingUser);
+    } catch(e) {
+      err.textContent='Could not save 2FA — check your Firestore rules.';
+      err.style.display='block';
+      btn.disabled=false; btn.textContent='Activate 2FA ✓';
+    }
+  };
+
+  // ─── TOTP Engine (RFC 6238, pure browser SubtleCrypto) ──────────────────
+  function generateBase32Secret(len) {
+    const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const arr=new Uint8Array(len); crypto.getRandomValues(arr);
+    return [...arr].map(b=>chars[b%32]).join('');
+  }
+  function formatSecret(s) { return s.match(/.{1,4}/g).join(' '); }
+  function base32Decode(s) {
+    const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits='';
+    s.toUpperCase().replace(/\s|=/g,'').split('').forEach(c=>{
+      const i=chars.indexOf(c); if(i>=0) bits+=i.toString(2).padStart(5,'0');
+    });
+    const bytes=[];
+    for(let i=0;i+8<=bits.length;i+=8) bytes.push(parseInt(bits.slice(i,i+8),2));
+    return new Uint8Array(bytes);
+  }
+  async function verifyTOTP(secret, input) {
+    const key = await crypto.subtle.importKey(
+      'raw', base32Decode(secret.replace(/\s/g,'')),
+      {name:'HMAC',hash:'SHA-1'}, false, ['sign']
+    );
+    const counter = Math.floor(Date.now()/1000/30);
+    for (const offset of [-1,0,1]) {
+      const buf=new ArrayBuffer(8);
+      new DataView(buf).setUint32(4, counter+offset, false);
+      const sig=new Uint8Array(await crypto.subtle.sign('HMAC',key,buf));
+      const o=sig[19]&0xf;
+      const code=(((sig[o]&0x7f)<<24)|((sig[o+1]&0xff)<<16)|((sig[o+2]&0xff)<<8)|(sig[o+3]&0xff))%1000000;
+      if (String(code).padStart(6,'0')===input) return true;
+    }
+    return false;
+  }
+  window.cleanOtp = el => { el.value=el.value.replace(/[^0-9]/g,'').slice(0,1); };
+
+  // ─── LOGOUT ─────────────────────────────────────────────────────────────
+  window.doLogout = async () => {
+    sessionStorage.removeItem('2fa_ok');
+    pendingUser=null;
+    await signOut(auth);
+    showSection('loginSection');
+    const btn=document.getElementById('btnLogin');
+    if(btn){btn.disabled=false;btn.textContent='Sign In →';}
+  };
+
+  // ─── TABS ─────────────────────────────────────────────────────────────────
+  window.switchTab = tab => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    if (tab === 'users') loadAllUsers();
+  };
+
+  // ─── FILE HANDLING ────────────────────────────────────────────────────────
+  window.handleDragOver = (e, id) => { e.preventDefault(); document.getElementById(id).classList.add('drag'); };
+  window.handleDragLeave = id => document.getElementById(id).classList.remove('drag');
+  window.handleDrop = (e, type) => {
+    e.preventDefault();
+    document.getElementById(type === 'thumb' ? 'thumbDrop' : 'pdfDrop').classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (type === 'thumb') {
+      if (!file.type.startsWith('image/')) return toast('Select an image file.', 'error');
+      selectedThumb = file;
+      document.getElementById('thumbLabel').textContent = '✓ ' + file.name;
+    } else {
+      if (file.type !== 'application/pdf') return toast('Select a PDF file.', 'error');
+      selectedPdf = file;
+      document.getElementById('pdfLabel').textContent = '✓ ' + file.name;
+    }
+  };
+  window.handleThumbSelect = e => { selectedThumb = e.target.files[0]; if (selectedThumb) document.getElementById('thumbLabel').textContent = '✓ ' + selectedThumb.name; };
+  window.handlePdfSelect = e => { selectedPdf = e.target.files[0]; if (selectedPdf) document.getElementById('pdfLabel').textContent = '✓ ' + selectedPdf.name; };
+  window.toggleContentFields = () => {
+    const isPdf = document.getElementById('contentType').value === 'pdf';
+    document.getElementById('pdfFieldGroup').style.display = isPdf ? 'block' : 'none';
+    document.getElementById('videoFieldGroup').style.display = isPdf ? 'none' : 'block';
+  };
+
+  // ─── UPLOAD HELPER ────────────────────────────────────────────────────────
+  function uploadFile(storagePath, file, barId, fillId, textId) {
+    return new Promise((resolve, reject) => {
+      document.getElementById(barId).style.display = 'block';
+      document.getElementById(fillId).style.width = '0%';
+      document.getElementById(textId).textContent = 'Uploading...';
+      const task = uploadBytesResumable(ref(storage, storagePath), file);
+      task.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          document.getElementById(fillId).style.width = pct + '%';
+          document.getElementById(textId).textContent = `Uploading... ${pct}%`;
+        },
+        err => { document.getElementById(textId).textContent = 'Upload failed.'; reject(err); },
+        async () => {
+          document.getElementById(textId).textContent = 'Upload complete ✓';
+          resolve(await getDownloadURL(task.snapshot.ref));
+        }
+      );
+    });
+  }
+
+  // ─── BATCHES ──────────────────────────────────────────────────────────────
+  window.createBatch = async () => {
+    const title = document.getElementById('batchTitle').value.trim();
+    const type = document.getElementById('batchType').value;
+    const subtitle = document.getElementById('batchSubtitle').value.trim();
+    const description = document.getElementById('batchDesc').value.trim();
+    const price = parseFloat(document.getElementById('batchPrice').value) || 0;
+    const mrp = parseFloat(document.getElementById('batchMrp').value) || 0;
+    const discountPercent = parseInt(document.getElementById('batchDiscount').value) || 0;
+    const playBillingProductId = document.getElementById('batchProductId').value.trim();
+    if (!title) return toast('Enter a batch title.', 'error');
+    if (!playBillingProductId) return toast('Enter the Play Console product ID.', 'error');
+    const btn = document.getElementById('btnCreateBatch');
+    btn.disabled = true; btn.textContent = 'Creating...';
+    let thumbnailUrl = '';
+    if (selectedThumb) {
+      try { thumbnailUrl = await uploadFile(`thumbnails/${Date.now()}_${selectedThumb.name}`, selectedThumb, 'thumbProgress', 'thumbProgressFill', 'thumbProgressText'); }
+      catch { toast('Thumbnail upload failed.', 'error'); btn.disabled = false; btn.textContent = '+ Create Batch'; return; }
+    }
+    try {
+      await addDoc(collection(db, 'batches'), {
+        title, subtitle, description, type, price, mrp, discountPercent,
+        playBillingProductId, thumbnailUrl, isSubscriptionBased: false,
+        createdAt: serverTimestamp(),
+      });
+      toast('Batch created!', 'success');
+      ['batchTitle','batchSubtitle','batchDesc','batchPrice','batchMrp','batchDiscount','batchProductId']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('thumbLabel').textContent = '📷 Click or drag thumbnail image here';
+      document.getElementById('thumbProgress').style.display = 'none';
+      selectedThumb = null;
+      loadBatches(); loadAllBatchSelectors();
+    } catch (e) { toast('Failed: ' + e.message, 'error'); }
+    btn.disabled = false; btn.textContent = '+ Create Batch';
+  };
+
+  async function loadBatches() {
+    const container = document.getElementById('batchList');
+    try {
+      const snap = await getDocs(query(collection(db, 'batches'), orderBy('createdAt', 'desc')));
+      if (snap.empty) { container.innerHTML = '<div class="empty-state">📭 No batches yet.</div>'; return; }
+      let html = '<table><thead><tr><th>Title</th><th>Type</th><th>Price</th><th>Product ID</th><th></th></tr></thead><tbody>';
+      snap.docs.forEach(d => {
+        const b = d.data();
+        html += `<tr>
+          <td><strong>${escHtml(b.title||'')}</strong><br><span style="color:#6B8BA4;font-size:12px;">${escHtml(b.subtitle||'')}</span></td>
+          <td><span class="badge">${b.type||''}</span></td>
+          <td>₹${b.price||0}</td>
+          <td><code style="font-size:12px;color:#9BB5C8;">${escHtml(b.playBillingProductId||'')}</code></td>
+          <td><button class="del-btn" onclick="deleteBatch('${d.id}')">Delete</button></td>
+        </tr>`;
+      });
+      container.innerHTML = html + '</tbody></table>';
+    } catch (e) { container.innerHTML = '<div class="empty-state">⚠️ Failed to load.</div>'; }
+  }
+
+  window.deleteBatch = async id => {
+    if (!confirm('Delete this batch? Folders and content inside it will NOT be auto-deleted.')) return;
+    await deleteDoc(doc(db, 'batches', id));
+    toast('Batch deleted.', 'success');
+    loadBatches(); loadAllBatchSelectors();
+  };
+
+  async function loadAllBatchSelectors() {
+    try {
+      const snap = await getDocs(collection(db, 'batches'));
+      const options = snap.docs.map(d => `<option value="${d.id}">${escHtml(d.data().title||d.id)}</option>`).join('');
+      const noOpt = '<option value="">— no batches yet —</option>';
+      ['folderBatchSelect','folderListBatchSelect','contentBatchSelect','contentListBatchSelect']
+        .forEach(id => { document.getElementById(id).innerHTML = options || noOpt; });
+      if (snap.docs.length) loadFolderList();
+    } catch (e) { console.error(e); }
+  }
+
+  // ─── FOLDERS ──────────────────────────────────────────────────────────────
+  window.createFolder = async () => {
+    const batchId = document.getElementById('folderBatchSelect').value;
+    const name = document.getElementById('folderName').value.trim();
+    const orderIndex = parseInt(document.getElementById('folderOrder').value) || 0;
+    if (!batchId) return toast('Select a batch.', 'error');
+    if (!name) return toast('Enter a folder name.', 'error');
+    const btn = document.getElementById('btnCreateFolder');
+    btn.disabled = true; btn.textContent = 'Creating...';
+    try {
+      await addDoc(collection(db, 'batches', batchId, 'folders'), { name, orderIndex, contentCount: 0 });
+      toast('Folder created!', 'success');
+      document.getElementById('folderName').value = '';
+      document.getElementById('folderOrder').value = '0';
+      loadFolderList();
+    } catch (e) { toast('Failed: ' + e.message, 'error'); }
+    btn.disabled = false; btn.textContent = '+ Create Folder';
+  };
+
+  window.loadFolderList = async () => {
+    const batchId = document.getElementById('folderListBatchSelect').value;
+    const container = document.getElementById('folderList');
+    if (!batchId) { container.innerHTML = '<div class="empty-state">Select a batch.</div>'; return; }
+    try {
+      const snap = await getDocs(query(collection(db, 'batches', batchId, 'folders'), orderBy('orderIndex')));
+      if (snap.empty) { container.innerHTML = '<div class="empty-state">📁 No folders yet.</div>'; return; }
+      let html = '<table><thead><tr><th>Folder</th><th>Order</th><th>Items</th><th></th></tr></thead><tbody>';
+      snap.docs.forEach(d => {
+        const f = d.data();
+        html += `<tr>
+          <td>📁 <strong>${escHtml(f.name||'')}</strong></td>
+          <td>${f.orderIndex??0}</td>
+          <td><span class="badge">${f.contentCount||0} items</span></td>
+          <td><button class="del-btn" onclick="deleteFolder('${batchId}','${d.id}')">Delete</button></td>
+        </tr>`;
+      });
+      container.innerHTML = html + '</tbody></table>';
+    } catch (e) { container.innerHTML = '<div class="empty-state">⚠️ Failed to load folders.</div>'; }
+  };
+
+  window.deleteFolder = async (batchId, folderId) => {
+    if (!confirm('Delete this folder and all its content documents?')) return;
+    const snap = await getDocs(collection(db, 'batches', batchId, 'folders', folderId, 'content'));
+    for (const d of snap.docs) await deleteDoc(doc(db, 'batches', batchId, 'folders', folderId, 'content', d.id));
+    await deleteDoc(doc(db, 'batches', batchId, 'folders', folderId));
+    toast('Folder deleted.', 'success'); loadFolderList();
+  };
+
+  window.loadFoldersForContentTab = async () => {
+    const batchId = document.getElementById('contentBatchSelect').value;
+    const sel = document.getElementById('contentFolderSelect');
+    if (!batchId) { sel.innerHTML = '<option>— select a batch first —</option>'; return; }
+    await fillFolderSelect(batchId, sel);
+  };
+  window.loadFoldersForContentList = async () => {
+    const batchId = document.getElementById('contentListBatchSelect').value;
+    const sel = document.getElementById('contentListFolderSelect');
+    if (!batchId) { sel.innerHTML = '<option>— select a batch first —</option>'; return; }
+    await fillFolderSelect(batchId, sel);
+    loadContentList();
+  };
+  async function fillFolderSelect(batchId, selectEl) {
+    try {
+      const snap = await getDocs(query(collection(db, 'batches', batchId, 'folders'), orderBy('orderIndex')));
+      selectEl.innerHTML = snap.docs.map(d => `<option value="${d.id}">📁 ${escHtml(d.data().name||d.id)}</option>`).join('')
+        || '<option value="">— no folders yet —</option>';
+    } catch { selectEl.innerHTML = '<option value="">— error —</option>'; }
+  }
+
+  // ─── CONTENT ──────────────────────────────────────────────────────────────
+  window.addContent = async () => {
+    const batchId = document.getElementById('contentBatchSelect').value;
+    const folderId = document.getElementById('contentFolderSelect').value;
+    const title = document.getElementById('contentTitle').value.trim();
+    const contentType = document.getElementById('contentType').value;
+    const orderIndex = parseInt(document.getElementById('contentOrder').value) || 0;
+    if (!batchId) return toast('Select a batch.', 'error');
+    if (!folderId) return toast('Select a folder.', 'error');
+    if (!title) return toast('Enter a content title.', 'error');
+    const btn = document.getElementById('btnAddContent');
+    btn.disabled = true; btn.textContent = 'Uploading...';
+    let storagePath = '', videoUrl = '';
+    try {
+      if (contentType === 'pdf') {
+        if (!selectedPdf) { toast('Select a PDF file.', 'error'); btn.disabled = false; btn.textContent = '+ Add Content'; return; }
+        storagePath = `batch_content/${batchId}/${folderId}/${Date.now()}_${selectedPdf.name.replace(/\s+/g,'_')}`;
+        await uploadFile(storagePath, selectedPdf, 'pdfProgress', 'pdfProgressFill', 'pdfProgressText');
+      } else {
+        videoUrl = document.getElementById('videoUrl').value.trim();
+        if (!videoUrl) { toast('Enter a video URL.', 'error'); btn.disabled = false; btn.textContent = '+ Add Content'; return; }
+      }
+      await addDoc(collection(db, 'batches', batchId, 'folders', folderId, 'content'), { title, contentType, storagePath, videoUrl, orderIndex });
+      const folderRef = doc(db, 'batches', batchId, 'folders', folderId);
+      const folderSnap = await getDoc(folderRef);
+      const current = folderSnap.exists() ? (folderSnap.data().contentCount || 0) : 0;
+      await updateDoc(folderRef, { contentCount: current + 1 });
+      toast('Content added!', 'success');
+      document.getElementById('contentTitle').value = '';
+      document.getElementById('videoUrl').value = '';
+      document.getElementById('contentOrder').value = '0';
+      document.getElementById('pdfLabel').textContent = '📎 Click or drag PDF file here';
+      document.getElementById('pdfProgress').style.display = 'none';
+      selectedPdf = null;
+      loadContentList();
+    } catch (e) { toast('Failed: ' + e.message, 'error'); }
+    btn.disabled = false; btn.textContent = '+ Add Content';
+  };
+
+  window.loadContentList = async () => {
+    const batchId = document.getElementById('contentListBatchSelect').value;
+    const folderId = document.getElementById('contentListFolderSelect').value;
+    const container = document.getElementById('contentList');
+    if (!batchId || !folderId) { container.innerHTML = '<div class="empty-state">Select a batch and folder.</div>'; return; }
+    try {
+      const snap = await getDocs(query(collection(db, 'batches', batchId, 'folders', folderId, 'content'), orderBy('orderIndex')));
+      if (snap.empty) { container.innerHTML = '<div class="empty-state">📭 No content yet.</div>'; return; }
+      let html = '<table><thead><tr><th>Title</th><th>Type</th><th>Order</th><th></th></tr></thead><tbody>';
+      snap.docs.forEach(d => {
+        const c = d.data();
+        html += `<tr>
+          <td>${c.contentType==='pdf'?'📄':'▶️'} ${escHtml(c.title||'')}</td>
+          <td><span class="badge">${c.contentType||''}</span></td>
+          <td>${c.orderIndex??0}</td>
+          <td><button class="del-btn" onclick="deleteContent('${batchId}','${folderId}','${d.id}')">Delete</button></td>
+        </tr>`;
+      });
+      container.innerHTML = html + '</tbody></table>';
+    } catch (e) { container.innerHTML = '<div class="empty-state">⚠️ Error. Check browser console for a Firestore index link.</div>'; console.error(e); }
+  };
+
+  window.deleteContent = async (batchId, folderId, contentId) => {
+    if (!confirm('Delete this content item?')) return;
+    try {
+      await deleteDoc(doc(db, 'batches', batchId, 'folders', folderId, 'content', contentId));
+      const folderRef = doc(db, 'batches', batchId, 'folders', folderId);
+      const snap = await getDoc(folderRef);
+      const current = snap.exists() ? (snap.data().contentCount || 1) : 1;
+      await updateDoc(folderRef, { contentCount: Math.max(0, current - 1) });
+      toast('Content deleted.', 'success'); loadContentList();
+    } catch (e) { toast('Delete failed: ' + e.message, 'error'); }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // USERS TAB
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Load all users from Firestore 'users' collection.
+   * Each user doc has: name, email, phone, cityDistrict, isAdmin
+   * Device lock fields (added by Android app on first login):
+   *   deviceId    — Android ID of the registered device
+   *   deviceModel — human-readable model name (e.g. "Samsung SM-A336E")
+   *   deviceLockedAt — timestamp when device was registered
+   *   lastLoginAt — timestamp of last login
+   */
+  async function loadAllUsers() {
+    const container = document.getElementById('userList');
+    container.innerHTML = '<div class="loading-spinner">Loading users...</div>';
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      if (snap.empty) { container.innerHTML = '<div class="empty-state">👥 No users registered yet.</div>'; return; }
+      container.innerHTML = snap.docs.map(d => buildUserCard(d.id, d.data())).join('');
+    } catch (e) {
+      container.innerHTML = '<div class="empty-state">⚠️ Failed to load users. Check Firestore rules allow admin read on /users.</div>';
+      console.error(e);
+    }
+  }
+
+  function buildUserCard(uid, u) {
+    const hasDevice = !!(u.registeredDeviceId && u.registeredDeviceId !== '');
+    const lastLogin = u.lastLoginAt
+      ? new Date(u.lastLoginAt.seconds * 1000).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+      : '—';
+    const deviceBadge = hasDevice
+      ? `<span class="user-device locked">🔒 ${escHtml(u.registeredDeviceName || u.registeredDeviceId)} · Registered ${u.lockedAt
+          ? new Date(u.lockedAt.seconds * 1000).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+          : ''}</span>`
+      : `<span class="user-device free">✅ No device registered — open for any device</span>`;
+
+    const actionBtn = hasDevice
+      ? `<button class="btn btn-orange" onclick="unlockDevice('${uid}')">⚡ Unlock Device</button>`
+      : `<span class="free-label">Free</span>`;
+
+    return `
+      <div class="user-card" id="user-card-${uid}">
+        <div class="user-info">
+          <div class="user-name">${escHtml(u.name || 'Unknown')}</div>
+          <div class="user-meta">
+            <span>📧 ${escHtml(u.email || '—')}</span>
+            <span>📱 ${escHtml(u.phone || '—')}</span>
+            <span style="color:#6B8BA4;font-size:12px;">Last login: ${lastLogin}</span>
+          </div>
+          ${deviceBadge}
+        </div>
+        <div class="user-actions">
+          ${actionBtn}
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Unlock Device — clears deviceId and deviceModel from the user's Firestore doc.
+   * After this, the user can log in on any new device and a new device will be registered.
+   */
+  window.unlockDevice = async uid => {
+    if (!confirm('Unlock this user\'s device? They will be able to log in on a new phone. Their old device will be locked out on next use.')) return;
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        registeredDeviceId:   deleteField(),
+        registeredDeviceName: deleteField(),
+        lockedAt:             deleteField(),
+      });
+      toast('Device unlocked. User can now log in on a new device.', 'success');
+      loadAllUsers(); // refresh
+    } catch (e) {
+      toast('Failed to unlock: ' + e.message, 'error');
+    }
+  };
+
+  /**
+   * Search user by email or phone.
+   * Tries email first (exact match), then phone.
+   */
+  window.searchUser = async () => {
+    const query_str = document.getElementById('userSearchInput').value.trim();
+    const container = document.getElementById('searchResult');
+    if (!query_str) return;
+    container.innerHTML = '<div class="loading-spinner">Searching...</div>';
+    try {
+      const allSnap = await getDocs(collection(db, 'users'));
+      const matched = allSnap.docs.filter(d => {
+        const u = d.data();
+        return (u.email && u.email.toLowerCase() === query_str.toLowerCase()) ||
+               (u.phone && u.phone === query_str);
+      });
+      if (!matched.length) {
+        container.innerHTML = '<div class="empty-state">No user found with that email or phone number.</div>';
+        return;
+      }
+      container.innerHTML = matched.map(d => buildUserCard(d.id, d.data())).join('');
+    } catch (e) {
+      container.innerHTML = '<div class="empty-state">⚠️ Search failed: ' + e.message + '</div>';
+    }
+  };
+
+  // ─── UTILS ────────────────────────────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = (type === 'success' ? '✅  ' : '❌  ') + msg;
+    el.className = 'show ' + type;
+    setTimeout(() => { el.className = ''; }, 3500);
+  }
+  window.toast = toast;
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
