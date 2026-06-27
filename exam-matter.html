@@ -739,14 +739,21 @@
   async function loadAllBatchSelectors() {
     try {
       const snap = await getDocs(collection(db, 'batches'));
-      const options = snap.docs.map(d => `<option value="${d.id}">${escHtml(d.data().title||d.id)}</option>`).join('');
+      const options = snap.docs.map(d =>
+        `<option value="${d.id}">${escHtml(d.data().title || d.id)}</option>`
+      ).join('');
       const noOpt = '<option value="">— no batches yet —</option>';
       ['folderBatchSelect','folderListBatchSelect','contentBatchSelect','contentListBatchSelect']
         .forEach(id => { document.getElementById(id).innerHTML = options || noOpt; });
-      if (snap.docs.length) loadFolderList();
+      if (snap.docs.length) {
+        loadFolderList();
+        // Auto-load folders for content tab so single-batch users don't need
+        // to manually change the dropdown to trigger folder loading
+        await loadFoldersForContentTab();
+        await loadFoldersForContentList();
+      }
     } catch (e) { console.error(e); }
   }
-
   // ─── FOLDERS ──────────────────────────────────────────────────────────────
   window.createFolder = async () => {
     const batchId = document.getElementById('folderBatchSelect').value;
